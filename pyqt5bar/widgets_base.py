@@ -6,14 +6,35 @@ import subprocess
 from PyQt5 import QtCore, QtWidgets, Qt
 
 
-class GroupWidget(QtWidgets.QWidget):
-    def __init__(self, wdgts):
+class LabelWithSignals(QtWidgets.QLabel):
+    clicked = QtCore.pyqtSignal()
+    hovered = QtCore.pyqtSignal()
+    doubleClicked = QtCore.pyqtSignal()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def mouseReleaseEvent(self, ev):
+        self.clicked.emit()
+
+    def focusInEvent(self, ev):
+        self.hovered.emit()
+
+    def mouseDoubleClickEvent(self, ev):
+        self.doubleClicked.emit()
+
+
+class GroupWidget(QtWidgets.QFrame):
+    def __init__(self, wdgts, style_dict):
         super().__init__()
         self.hlayout = QtWidgets.QHBoxLayout()
         self.hlayout.setContentsMargins(0, 0, 0, 0)
         for wdgt in wdgts:
             self.hlayout.addWidget(wdgt)
         self.setLayout(self.hlayout)
+
+        stylesheet = " ".join(f'{k.replace("_", "-")}: {v};'
+                              for k, v in style_dict.items())
+        self.setStyleSheet(stylesheet)
 
 
 class BaseWidget(QtWidgets.QWidget):
@@ -31,17 +52,25 @@ class BaseWidget(QtWidgets.QWidget):
         '''
         Apply user settings
         '''
-        stylesheet = " ".join(f'{k.replace("_", "-")}: {v};' for k, v in self.props.items())
+        stylesheet = " ".join(f'{k.replace("_", "-")}: {v};'
+                              for k, v in self.props.items())
         print(stylesheet)
         self.setStyleSheet(stylesheet)
 
 
 class TextWidget(BaseWidget):
-    def __init__(self, text, **kwargs):
+    def __init__(self, text, click_func=None, hover_func=None,
+                 doubleclick_func=None, **kwargs):
         super().__init__(**kwargs)
         self.hbox = QtWidgets.QHBoxLayout()
         self.hbox.setContentsMargins(0, 0, 0, 0)
-        self.label = QtWidgets.QLabel(text)
+        self.label = LabelWithSignals(text)
+        if click_func is not None:
+            self.label.clicked.connect(click_func)
+        if hover_func is not None:
+            self.label.hovered.connect(hover_func)
+        if doubleclick_func is not None:
+            self.label.doubleClicked.connect(doubleclick_func)
         self.setLayout(self.hbox)
         self.hbox.addWidget(self.label)
 
@@ -131,20 +160,3 @@ class SelfUpdatingWidget(TextWidget):
         self.func_obj.update_signal.connect(self.label.setText)
         self.thread.started.connect(self.func_obj.start_process)
         self.thread.start()
-        
-
-class LabelWithSignals(QtWidgets.QLabel):
-    clicked = QtCore.pyqtSignal()
-    hovered = QtCore.pyqtSignal()
-    doubleClicked = QtCore.pyqtSignal()
-    def __init__(self):
-        super().__init__()
-
-    def mouseReleaseEvent(self, ev):
-        self.clicked.emit()
-
-    def focusInEvent(self, ev):
-        self.hovered.emit()
-
-    def mouseDoubleClickEvent(self, ev):
-        self.doubleClicked.emit()

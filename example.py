@@ -2,37 +2,58 @@
 
 import sys
 import datetime
+import subprocess as sp
 from pyqt5bar.main import Bar
+from pyqt5bar.builtin_widgets import corona_cases
 from PyQt5 import QtWidgets, Qt
-from pyqt5bar.widgets_base import SelfUpdatingWidget, TextWidget
+from pyqt5bar.widgets_base import SelfUpdatingWidget, TextWidget, GroupWidget
 
+
+fg_color = 'White'
+bg_color = 'Indigo'
+altbg_color = 'Chocolate'
+border_radius = '9px'
+
+default_args = {
+    'color': fg_color, 'border_radius': border_radius,
+    'padding_left': border_radius, 'padding_right': border_radius}
+
+
+def corona_widget():
+    corona_icon = TextWidget('🦠', font_family='Noto Color Emoji',
+                            background='transparent')
+    corona_wdgt = SelfUpdatingWidget(
+        '0', None, corona_cases, 3600, None, None, background='transparent',
+    )
+    return GroupWidget(
+        [corona_icon, corona_wdgt],
+        {**{'background': altbg_color}, **default_args})
+
+
+def cpu_usage():
+    pass
 
 def main(app):
     bar = Bar(
         [
-            TextWidget('Welcome!', background='Indigo', border_radius='9px',
-                       border_width='2px', border_color='black', padding='1px',
-                       padding_left='15px'),
-            TextWidget('💗', font_family='Noto Color Emoji'),
+            TextWidget('Welcome!', background=bg_color, **default_args),
+            # TextWidget('\U0001F9A0', font_family='Noto Color Emoji'),
+            corona_widget(),
             'Stretch',
             SelfUpdatingWidget(
                 'US', 'xkb-switch', None, 600, 'xkb-switch -W',
-                lambda x: f'{x.upper()[0:2]}', background='Chocolate',
-                border_radius='9px', padding_left='9px', padding_right='9px',
-                font_weight='bold'),
+                lambda x: f'{x.upper()[0:2]}', background=altbg_color,
+                click_func=lambda: sp.Popen('xkb-switch -n', shell=True),
+                font_weight='bold', **default_args),
             SelfUpdatingWidget(
-                'test', None,
+                '', None,
                 lambda: datetime.datetime.now().strftime(
                     '%a, %d-%b-%Y / %I:%M:%S'), 1,
                 update_proc=None, post_proc_func=lambda x: x.strip(),
-                background='Indigo', border_radius='9px',
-                padding_left='9px', padding_right='9px'),
-            # SelfUpdatingWidget(
-            #     'test', 'date +"%a, %d-%B-%Y | %I:%M:%S"', None, 1,
-            #     update_proc=None, post_proc_func=lambda x: x.strip(),
-            #     background='Indigo', border_radius='9px',
-            #     padding_left='9px', padding_right='9px'),
-        ], app=app, widgets_spacing= 10, rounded_corner='5px', color='white')
+                background=bg_color, **default_args),
+        ],
+        app=app, widgets_spacing= 10,
+        rounded_corner='5px', color='white')
     bar.show()
     sys.exit(app.exec_())
     
