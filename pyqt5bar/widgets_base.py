@@ -6,12 +6,15 @@ import subprocess
 from PyQt5 import QtCore, QtWidgets, Qt
 
 
+default_style = {'background': 'transparent', 'padding': '0px', 'margin': '0px'}
+
 class LabelWithSignals(QtWidgets.QLabel):
+    '''
+    QLabel with signals for hover, click and double click event
+    '''
     clicked = QtCore.pyqtSignal()
     hovered = QtCore.pyqtSignal()
     doubleClicked = QtCore.pyqtSignal()
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
 
     def mouseReleaseEvent(self, ev):
         self.clicked.emit()
@@ -24,7 +27,7 @@ class LabelWithSignals(QtWidgets.QLabel):
 
 
 class GroupWidget(QtWidgets.QFrame):
-    def __init__(self, wdgts, style_dict):
+    def __init__(self, wdgts, **kwargs):
         super().__init__()
         self.hlayout = QtWidgets.QHBoxLayout()
         self.hlayout.setContentsMargins(0, 0, 0, 0)
@@ -32,8 +35,14 @@ class GroupWidget(QtWidgets.QFrame):
             self.hlayout.addWidget(wdgt)
         self.setLayout(self.hlayout)
 
+        self.props = default_style
+        for k, v in kwargs.items():
+            self.props[k] = v
+        self.stylize()
+
+    def stylize(self):
         stylesheet = " ".join(f'{k.replace("_", "-")}: {v};'
-                              for k, v in style_dict.items())
+                              for k, v in self.props.items())
         self.setStyleSheet(stylesheet)
 
 
@@ -43,7 +52,7 @@ class BaseWidget(QtWidgets.QWidget):
     '''
     def __init__(self, **kwargs):
         super().__init__()
-        self.props = {'background': 'transparent', 'padding': '0px', 'margin': '0px'}
+        self.props = default_style
         for k, v in kwargs.items():
             self.props[k] = v
         self.stylize()
@@ -54,7 +63,6 @@ class BaseWidget(QtWidgets.QWidget):
         '''
         stylesheet = " ".join(f'{k.replace("_", "-")}: {v};'
                               for k, v in self.props.items())
-        print(stylesheet)
         self.setStyleSheet(stylesheet)
 
 
@@ -151,12 +159,17 @@ class SelfUpdatingWidget(TextWidget):
             self, inittext='', cmd=None, func=None, update_period=0,
             update_proc=None, post_proc_func=None, **kwargs):
         super().__init__(inittext, **kwargs)
+        self.current_text = inittext
 
         self.func_obj = SubProcessObject(
             cmd, func, update_period, update_proc, post_proc_func)
 
         self.thread = QtCore.QThread()
         self.func_obj.moveToThread(self.thread)
-        self.func_obj.update_signal.connect(self.label.setText)
+        self.func_obj.update_signal.connect(self.update_widget)
         self.thread.started.connect(self.func_obj.start_process)
         self.thread.start()
+
+    def update_widget(self, text):
+        self.current_text = text
+        self.label.setText(text)

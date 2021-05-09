@@ -4,7 +4,7 @@ import sys
 import datetime
 import subprocess as sp
 from pyqt5bar.main import Bar
-from pyqt5bar.builtin_widgets import corona_cases
+from pyqt5bar.builtin_widgets import corona_cases, CpuUsageWidget, CpuTempWidget, RamUsageWidget
 from PyQt5 import QtWidgets, Qt
 from pyqt5bar.widgets_base import SelfUpdatingWidget, TextWidget, GroupWidget
 
@@ -27,11 +27,12 @@ def corona_widget():
     )
     return GroupWidget(
         [corona_icon, corona_wdgt],
-        {**{'background': altbg_color}, **default_args})
+        background=altbg_color, **default_args)
 
 
 def cpu_usage():
     pass
+
 
 def main(app):
     bar = Bar(
@@ -40,6 +41,12 @@ def main(app):
             # TextWidget('\U0001F9A0', font_family='Noto Color Emoji'),
             corona_widget(),
             'Stretch',
+            RamUsageWidget(background=bg_color, **default_args),
+            CpuTempWidget(update_period=5, background=altbg_color, **default_args),
+            GroupWidget(
+                [TextWidget('\U0001F4BB', font_family='Noto Color Emoji'),
+                 CpuUsageWidget()],
+                background=bg_color, **default_args),
             SelfUpdatingWidget(
                 'US', 'xkb-switch', None, 600, 'xkb-switch -W',
                 lambda x: f'{x.upper()[0:2]}', background=altbg_color,
