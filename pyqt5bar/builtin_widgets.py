@@ -182,6 +182,40 @@ class VolumeWidget(GroupWidget):
             self.bar_height-4, QtCore.Qt.SmoothTransformation)
         self.volume_icon.setPixmap(vol_pix)
         return f'{int(volume):0>3.0f}%'
+        
+
+class BatteryWidget(GroupWidget):
+    '''
+    Battery percentage with papirus icons for panel
+    '''
+    def __init__(self, bar_height=20, **kwargs):
+        self.icons = os.listdir(f'{SCRIPT_PATH}/Images/battery')
+        print(self.icons)
+        self.battery_icon = QtWidgets.QLabel()
+        self.battery_icon.setStyleSheet('padding: 0px; background: transparent')
+        self.battery = SelfUpdatingWidget(
+            '100%', func=self.output, update_period=120)
+        self.bar_height = bar_height
+        super().__init__([self.battery_icon, self.battery], **kwargs)
+
+    def output(self):
+        battery = sp.check_output('acpi --battery', text=True, shell=True).strip()
+        if battery != '':
+            charging = 'Charging' in battery
+            status = battery.split(': ')[1].split(', ')[0]
+            battery = battery.split(': ')[1].split(', ')[1]
+            bat_vlu = int(battery.rstrip('%'))
+            icon_name = f'battery-{round(bat_vlu, -1):0>3.0f}'
+            icon_name += '-charging' if charging else ''
+            icon_name += '.svg'
+            print(icon_name)
+            bat_pix = QtGui.QPixmap(
+                f'{SCRIPT_PATH}/Images/battery/{icon_name}').scaledToHeight(
+                    self.bar_height-4, QtCore.Qt.SmoothTransformation)
+            self.battery_icon.setPixmap(bat_pix)
+        return battery
+
+
 class RamUsageWidget(GroupWidget):
     def __init__(self, update_period=5, bar_height=20, **kwargs):
         ram_icon = QtWidgets.QLabel()
