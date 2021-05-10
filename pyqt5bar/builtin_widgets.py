@@ -252,7 +252,7 @@ class CpuTempWidget(SelfUpdatingWidget):
         self.current_icon = [
             v for k, v in self.icons_dict.items()
             if k >= self.avg_temp or k == 90][0]
-        return f'{self.current_icon} {self.avg_temp:0.0f} ℃'
+        return f'{self.current_icon} {self.avg_temp:0.0f}℃'
 
     def update_widget(self, text):
         self.label.setText(text)
