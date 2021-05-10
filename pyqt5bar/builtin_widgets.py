@@ -218,16 +218,19 @@ class BatteryWidget(GroupWidget):
 
 class RamUsageWidget(GroupWidget):
     def __init__(self, update_period=5, bar_height=20, **kwargs):
-        ram_icon = QtWidgets.QLabel()
-        print(f'{SCRIPT_PATH}/Images/ram.png')
-        ram_pix = QtGui.QPixmap(f'{SCRIPT_PATH}/Images/ram.png').scaledToHeight(
-            bar_height-2, QtCore.Qt.SmoothTransformation)
-        ram_icon.setPixmap(ram_pix)
-        ram_icon.setMaximumWidth(ram_icon.sizeHint().width())
-        ram_icon.setAlignment(QtCore.Qt.AlignCenter)
+        self.ram_icon = QtWidgets.QLabel()
+        self.ram_pix = QtGui.QPixmap(
+            f'{SCRIPT_PATH}/Images/ram_tiny.png').scaledToHeight(
+                bar_height-4, QtCore.Qt.SmoothTransformation)
+        self.ram_icon.setPixmap(self.ram_pix)
+        self.ram_icon.setMaximumWidth(self.ram_pix.width())
+        self.ram_icon.setAlignment(QtCore.Qt.AlignCenter)
+        self.ram_icon.setStyleSheet('padding: 0px; background: transparent')
+
         ramusage = SelfUpdatingWidget(
             '', func=self.get_usage, update_period=update_period)
-        super().__init__([ram_icon, ramusage], **kwargs)
+
+        super().__init__([self.ram_icon, ramusage], **kwargs)
 
     def get_usage(self):
         ram = sp.check_output('vmstat -s', shell=True, text=True).split('\n')
