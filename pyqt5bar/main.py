@@ -76,12 +76,13 @@ class Bar(QtWidgets.QWidget):
         self.setMaximumHeight(self.props.height)
         for child in self.children():
             for c in child.children():
-                if not isinstance(c, QtWidgets.QHBoxLayout):
+                if not (isinstance(c, QtWidgets.QHBoxLayout) or c is None):
                     c.setMaximumHeight(self.props.height)
 
         children = (self.main_layout.itemAt(i) for i in range(self.main_layout.count()))
         for child in children:
-            child.widget().setMaximumHeight(self.props.height)
+            if child.widget() is not None:
+                child.widget().setMaximumHeight(self.props.height)
 
     def populate_widgets(self):
         # Close button for debugging
@@ -101,6 +102,8 @@ class Bar(QtWidgets.QWidget):
                     spacing = int(wdgt.split(maxsplit=1)[1])
                     self.main_layout.addSpacing(spacing)
         self.main_layout.addWidget(close)
+        self.inforce_bar_height()
+
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
