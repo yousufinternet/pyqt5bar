@@ -4,9 +4,10 @@ import os
 import sys
 import requests
 import subprocess as sp
-from PyQt5 import QtWidgets, QtGui, QtCore
+from functools import partial
+from PyQt5 import QtWidgets, QtGui, QtCore, Qt
 from bs4 import BeautifulSoup
-from pyqt5bar.widgets_base import SelfUpdatingWidget, TextWidget, GroupWidget
+from pyqt5bar.widgets_base import SelfUpdatingWidget, SelfUpdatingWidgets, TextWidget, GroupWidget, LabelWithSignals
 
 pathname = os.path.dirname(sys.argv[0])
 SCRIPT_PATH = os.path.abspath(pathname)
@@ -37,6 +38,111 @@ def pacman_updates():
         shell=True, text=True).strip()
     all_packs = int(aur_packs) + int(official)
     return str(all_packs)
+
+
+def cmd_output(cmd, **kwargs):
+    try:
+        return sp.check_output(cmd, text=True, shell=True).strip()
+    except sp.CalledProcessError:
+        return ''
+
+class HerbstluftwmTagsWidget(SelfUpdatingWidgets):
+    '''
+    urgent_style  : tags with urgent windows stylesheet
+    focused_style : focused tag stylesheet
+    empty_style   : tags with no windows stylesheet
+    used_style    : tags with windows stylesheet
+    animate_urgent: if tags with urgent windows are animated
+    '''
+    def __init__(
+            self,
+            urgent_style={'background': 'Red'},
+            focused_style={
+                'background': 'White', 'color': 'Indigo',
+                'font-weight': 'bold'},
+            empty_style={
+                'background': 'Gray', 'color': 'rgba(255, 255, 255, 50%)'},
+            used_style={'background': 'transparent'},
+            animate_urgent=True,
+            **kwargs):
+        super().__init__(
+            [], None, self.tags_state, update_period=5, **kwargs,
+            update_proc="herbstclient --idle 'focus_changed|tag_changed'")
+        self.urgent_style = urgent_style
+        self.focused_style = focused_style
+        self.empty_style = empty_style
+        self.used_style = used_style
+        self.animate_urgent = animate_urgent
+        self.org_tags_count = int(cmd_output('herbstclient attr tags.count'))
+        self.populate_group()
+
+    def populate_group(self):
+        if hasattr(self, 'widgets'):
+            for wdgt in self.widgets:
+                self.hlayout.removeWidget(wdgt)
+        tags_count = int(cmd_output('herbstclient attr tags.count'))
+        tags_names = [cmd_output(f'herbstclient attr tags.{i}.name')
+                      for i in range(tags_count)]
+        self.widgets = [LabelWithSignals(n) for n in tags_names]
+        for wdgt in self.widgets:
+            wdgt.setMinimumWidth(20)
+            wdgt.setAlignment(Qt.Qt.AlignCenter)
+            self.hlayout.addWidget(wdgt)
+            wdgt.clicked.connect(partial(self.command, wdgt.text()))
+
+    def command(self, txt):
+        print(txt)
+        if txt.endswith('__hov__'):
+            tag = txt.rstrip('__hov__')
+
+            # hover logic goes here
+            return
+        # click logic goes here
+        sp.Popen(f'herbstclient use {txt}', shell=True)
+
+    def animate_urgent_wdgt(self, wdgt):
+        pass
+
+    def update_widget(self, state):
+        focused, empty_tags, urgent_tags = state
+        for wdgt in self.widgets:
+            if wdgt.text() == focused:
+                wdgt.setStyleSheet('; '.join(
+                    f'{k}: {v}' for k, v in self.focused_style.items()))
+            elif wdgt.text() in urgent_tags:
+                wdgt.setStyleSheet('; '.join(
+                    f'{k}: {v}' for k, v in self.urgent_style.items()))
+                if self.animate_urgent:
+                    self.animate_urgent_wdgt(wdgt)
+            elif wdgt.text() in empty_tags:
+                wdgt.setStyleSheet('; '.join(
+                    f'{k}: {v}' for k, v in self.empty_style.items()))
+            else:
+                wdgt.setStyleSheet('; '.join(
+                    f'{k}: {v}' for k, v in self.used_style.items()))
+ 
+    def tags_state(self):
+        tags_count = int(cmd_output('herbstclient attr tags.count'))
+        tags_names = [cmd_output(f'herbstclient attr tags.{i}.name')
+                      for i in range(tags_count)]
+        if tags_count != self.org_tags_count:
+            self.org_tags_count = tags_count
+            self.populate_group()
+
+        focused = cmd_output('herbstclient attr tags.focus.name')
+
+        empty_tags, urgent_tags = [], []
+        for desk in tags_names:
+            wins_count = cmd_output(
+                f"herbstclient attr tags.by-name.{desk}.client_count")
+            urgent_count = cmd_output(
+                f'herbstclient attr tags.by-name.{desk}.urgent_count')
+            urgent_count = 0 if urgent_count == '' else urgent_count
+            if int(wins_count) == 0:
+                empty_tags.append(desk)
+            if int(urgent_count) != 0:
+                urgent_tags.append(desk)
+        return focused, empty_tags, urgent_tags
 
 
 class RamUsageWidget(GroupWidget):
