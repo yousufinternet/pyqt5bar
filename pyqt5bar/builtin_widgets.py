@@ -145,6 +145,43 @@ class HerbstluftwmTagsWidget(SelfUpdatingWidgets):
         return focused, empty_tags, urgent_tags
 
 
+class VolumeWidget(GroupWidget):
+    '''
+    Battery percentage with papirus icons for panel
+    '''
+    def __init__(self, bar_height=20, **kwargs):
+        self.volume_levels = {'none': 0, 'low': 25, 'medium': 50, 'high': 75}
+        self.volume_icon = QtWidgets.QLabel()
+        self.volume_icon.setStyleSheet('padding: 0px; background: transparent')
+
+        self.volume = SelfUpdatingWidget(
+            '100%', None, self.get_volume, 1, None, None,
+            click_func=partial(self.set_volume, '100%'),
+            doubleclick_func=partial(self.set_volume, '0'),
+            scrollup_func=partial(self.set_volume, '+2%'),
+            scrolldown_func=partial(self.set_volume, '-2%'))
+
+        self.bar_height = bar_height
+        super().__init__([self.volume_icon, self.volume], **kwargs)
+
+    def set_volume(self, vol):
+        sp.Popen(f'pactl set-sink-volume @DEFAULT_SINK@ {vol}',
+                 shell=True, text=True)
+
+    def get_volume(self):
+        volume = cmd_output('pamixer --get-volume')
+        volume = volume if volume else '0'
+        icon = [k for k, v in self.volume_levels.items()
+                if v >= int(volume)][0]
+        icon = f'volume-level-{icon}-panel.svg'
+        if hasattr(self, 'prev_icon') and icon == self.prev_icon:
+            return f'{int(volume):0>3.0f}%'
+        self.prev_icon = icon
+        icon = os.path.join(SCRIPT_PATH, 'Images', 'volume', icon)
+        vol_pix = QtGui.QPixmap(icon).scaledToHeight(
+            self.bar_height-4, QtCore.Qt.SmoothTransformation)
+        self.volume_icon.setPixmap(vol_pix)
+        return f'{int(volume):0>3.0f}%'
 class RamUsageWidget(GroupWidget):
     def __init__(self, update_period=5, bar_height=20, **kwargs):
         ram_icon = QtWidgets.QLabel()
