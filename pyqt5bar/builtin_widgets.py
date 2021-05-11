@@ -172,7 +172,7 @@ class VolumeWidget(GroupWidget):
         volume = cmd_output('pamixer --get-volume')
         volume = volume if volume else '0'
         icon = [k for k, v in self.volume_levels.items()
-                if v >= int(volume)][0]
+                if v >= int(volume) or v == 75][0]
         icon = f'volume-level-{icon}-panel.svg'
         if hasattr(self, 'prev_icon') and icon == self.prev_icon:
             return f'{int(volume):0>3.0f}%'
